@@ -23,6 +23,19 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
+
+    const db = client.db("event-db");
+    const eventCollection = db.collection("events");
+
+    app.get("/events", async (req, res) => {
+      const today = new Date().toISOString().split("T")[0];
+      const result = await eventCollection
+        .find({ event_date: { $gte: today } })
+        .sort({ event_date: 1 })
+        .toArray();
+      res.send(result);
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
