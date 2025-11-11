@@ -7,7 +7,7 @@ require("dotenv").config();
 app.use(cors());
 app.use(express.json());
 
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@zyra.l75hwjs.mongodb.net/?appName=Zyra`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -56,6 +56,12 @@ async function run() {
         console.error(error);
         res.status(500).send({ message: "Error fetching events" });
       }
+    });
+
+    app.get("/events/:id", async (req, res) => {
+      const { id } = req.params;
+      const result = await eventCollection.findOne({ _id: new ObjectId(id) });
+      res.send(result);
     });
 
     app.post("/events", async (req, res) => {
