@@ -28,12 +28,44 @@ async function run() {
     const eventCollection = db.collection("events");
 
     app.get("/events", async (req, res) => {
-      const today = new Date().toISOString().split("T")[0];
-      const result = await eventCollection
-        .find({ event_date: { $gte: today } })
-        .sort({ event_date: 1 })
-        .toArray();
-      res.send(result);
+      try {
+        const result = await eventCollection
+          .aggregate([
+            {
+              $addFields: {
+                parsedDate: {
+                  $dateFromString: {
+                    dateString: "$event_date",
+                    timezone: "Asia/Dhaka",
+                  },
+                },
+              },
+            },
+            { $match: { parsedDate: { $gte: new Date() } } },
+            { $sort: { parsedDate: 1 } },
+            {
+              $project: {
+                parsedDate: 0,
+              },
+            },
+          ])
+          .toArray();
+
+        res.send(result);
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Error fetching events" });
+      }
+    });
+
+    app.post("/events", async (req, res) => {
+      const data = req.body;
+      console.log(data);
+      const result = await eventCollection.insertOne(data);
+      res.send({
+        success: true,
+        result,
+      });
     });
 
     // Send a ping to confirm a successful connection
