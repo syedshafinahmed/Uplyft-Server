@@ -64,6 +64,18 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/events/user/:email", async (req, res) => {
+      const email = req.params.email;
+      try {
+        const events = await eventCollection
+          .find({ created_by: email })
+          .toArray();
+        res.send(events);
+      } catch (error) {
+        res.status(500).send({ message: "Failed to fetch events", error });
+      }
+    });
+
     app.post("/events", async (req, res) => {
       const data = req.body;
       console.log(data);
