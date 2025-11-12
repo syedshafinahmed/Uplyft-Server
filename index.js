@@ -26,6 +26,7 @@ async function run() {
 
     const db = client.db("event-db");
     const eventCollection = db.collection("events");
+    const joinedCollection = db.collection("joined");
 
     app.get("/events", async (req, res) => {
       try {
@@ -84,6 +85,51 @@ async function run() {
         success: true,
         result,
       });
+    });
+
+    app.get("/joined/:email", async (req, res) => {
+      const { email } = req.params;
+      try {
+        const joinedEvents = await joinedCollection
+          .aggregate([
+            { $match: { user_email: email } },
+            {
+              $addFields: {
+                parsedDate: { $dateFromString: { dateString: "$event_date" } },
+              },
+            },
+            { $sort: { parsedDate: 1 } },
+            { $project: { parsedDate: 0 } },
+          ])
+          .toArray();
+
+        res.status(200).json(joinedEvents);
+      } catch (error) {
+        console.error("Error fetching joined events:", error);
+        res
+          .status(500)
+          .json({ message: "Failed to fetch joined events", error });
+      }
+    });
+
+    app.post("/joined", async (req, res) => {
+      const data = req.body;
+
+      try {
+        const existing = await joinedCollection.findOne({
+          user_email: data.user_email,
+          eventId: data.eventId,
+        });
+
+        if (existing) {
+          return res.status(400).send({ message: "Already joined this event" });
+        }
+        const result = await joinedCollection.insertOne(data);
+        res.send({ success: true, result });
+      } catch (error) {
+        console.error("Error joining event:", error);
+        res.status(500).send({ message: "Failed to join event", error });
+      }
     });
 
     app.put("/events/:id", async (req, res) => {
