@@ -86,6 +86,20 @@ async function run() {
       });
     });
 
+    app.put("/events/:id", async (req, res) => {
+      const { id } = req.params;
+      const data = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const update = {
+        $set: data,
+      };
+      const result = await eventCollection.updateOne(filter, update);
+      res.send({
+        success: true,
+        result,
+      });
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
