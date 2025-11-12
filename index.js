@@ -123,7 +123,7 @@ async function run() {
       });
     });
 
-    app.get("/joined/:email", async (req, res) => {
+    app.get("/joined/:email", verifyToken, async (req, res) => {
       const { email } = req.params;
       try {
         const joinedEvents = await joinedCollection
