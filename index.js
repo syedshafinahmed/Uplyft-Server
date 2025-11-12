@@ -30,29 +30,40 @@ async function run() {
 
     app.get("/events", async (req, res) => {
       try {
-        const result = await eventCollection
-          .aggregate([
-            {
-              $addFields: {
-                parsedDate: {
-                  $dateFromString: {
-                    dateString: "$event_date",
-                    timezone: "Asia/Dhaka",
-                  },
+        const { type, search } = req.query; 
+        const matchQuery = {};
+        matchQuery.parsedDate = { $gte: new Date() };
+        const pipeline = [
+          {
+            $addFields: {
+              parsedDate: {
+                $dateFromString: {
+                  dateString: "$event_date",
+                  timezone: "Asia/Dhaka",
                 },
               },
             },
-            { $match: { parsedDate: { $gte: new Date() } } },
-            { $sort: { parsedDate: 1 } },
-            {
-              $project: {
-                parsedDate: 0,
-              },
+          },
+        ];
+        if (type) {
+          pipeline.push({
+            $match: { event_type: type },
+          });
+        }
+        if (search) {
+          pipeline.push({
+            $match: {
+              title: { $regex: search, $options: "i" }, 
             },
-          ])
-          .toArray();
-
-        res.send(result);
+          });
+        }
+        pipeline.push({
+          $match: { parsedDate: { $gte: new Date() } },
+        });
+        pipeline.push({ $sort: { parsedDate: 1 } });
+        pipeline.push({ $project: { parsedDate: 0 } });
+        const events = await eventCollection.aggregate(pipeline).toArray();
+        res.send(events);
       } catch (error) {
         console.error(error);
         res.status(500).send({ message: "Error fetching events" });
