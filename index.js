@@ -182,6 +182,21 @@ async function run() {
       });
     });
 
+    // Get events by type
+    app.get("/events/type/:event_type", async (req, res) => {
+      const { event_type } = req.params;
+      try {
+        const events = await eventCollection
+          .find({ event_type })
+          .sort({ event_date: 1 }) // upcoming events first
+          .toArray();
+        res.send(events);
+      } catch (error) {
+        console.error("Error fetching events by type:", error);
+        res.status(500).send({ message: "Failed to fetch events by type" });
+      }
+    });
+
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
     console.log(
